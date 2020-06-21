@@ -97,10 +97,17 @@ class Nfa:
 
     @property
     def pred(self):
+        # pred = {}
+        # for key in self._transitions:
+        #    pred[key] = set()
+
         pred = {s:set() for s in self._transitions}
 
+        # state = state, rules = sub dictionray
         for state, rules in self._transitions.items():
+            # key = transition symbol, value is set of states reachable
             for key, value in rules.items():
+                # for each reachable state q
                 for q in value:
                     pred[q].add(state)
 
@@ -109,6 +116,9 @@ class Nfa:
     @property
     def succ(self):
         succ = {s:set() for s in self._transitions}
+        # succ = {}
+        #for s in self._transitions:
+        #    succ[s] = set()
 
         for state, rules in self._transitions.items():
             for key, value in rules.items():
@@ -227,7 +237,10 @@ class Nfa:
             dictionary mapping final states: state that from which we can reach
             that final state
         '''
+
+        
         res = dict()
+        #pred stores inverse mapping
         pred = self.pred
         for f in self._final_states:
             actual = set([f])
@@ -480,13 +493,14 @@ class Nfa:
         mapping : dict
             mapping state1:state2 where state1 is merged into state2
         '''
-
+        #merging means smashing two states into one, and again other two into 
+        #if the two sets are different, merging happens or else there is mistake    
         if set(mapping.keys()) & set(mapping.values()):
             raise RuntimeError('merging not consistent')
 
         states = set(self.states)
         #mapping = {k:v for k,v in mapping.items() if k != self._initial_state}
-
+       
         for p,q in mapping.items():
             if not p in states or not q in states:
                 raise RuntimeError('invalid state id')
@@ -498,6 +512,7 @@ class Nfa:
             del self._transitions[p]
             if p in self._final_states:
                 self._final_states.add(q)
+                #p is merged into q, q is made final state
 
         for s,t  in self._transitions.copy().items():
             for a,ss in t.items():

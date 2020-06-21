@@ -9,7 +9,7 @@ from glob import glob
 from copy import deepcopy
 import networkx
 
-from reduction import pruning, merging
+from reduction import pruning, merging, pruning_v2
 from nfa import Nfa
 
 def check_file(fname, dir=False):
@@ -21,9 +21,9 @@ def check_file(fname, dir=False):
             raise RuntimeError('file not found: ' + fname)
 
 
-def reduce_nfa(aut, freq=None, ratio=.25, merge=True, th=.995, mf=.1):
+def reduce_nfa(aut, freq=None, ratio=.2, merge=False, freq_pruning=False, th=.995, mf=.1):
     '''
-    Approximate NFA reduction. The reduction consists of pruning and merging 
+    Approximate NFA reduction. The reduction consists of pruning and merging
     based on packet frequency.
 
     Parameters
@@ -36,6 +36,8 @@ def reduce_nfa(aut, freq=None, ratio=.25, merge=True, th=.995, mf=.1):
         reduction ratio
     merge :
         use merging reduction before pruning
+    freq_pruning:
+        frequency based pruning method
     th :
         merging threshold
     mf :
@@ -47,15 +49,30 @@ def reduce_nfa(aut, freq=None, ratio=.25, merge=True, th=.995, mf=.1):
         reduced NFA
     m
         the number of merged states
+    max_err
+        in case of frequency pruning returns sum of frequencies of removed states, otherwise -1 (not computed)
     '''
+    max_err = -1
     m = 0
     if merge:
         cnt = aut.state_count #modified!!!!
         m = merging(aut, freq=freq, th=th, max_fr=mf)
         ratio = ratio * float(cnt) / (cnt - m)
 
-    pruning(aut, ratio, freq=freq)
-    return aut, m
+    # use of new_pruning and merging was not tested, NOT RECOMMENDED
+    if freq_pruning:
+        if merge:
+            sys.stderr.write("Use of freq_pruning and merging was not tested, NOT RECOMMENDED.")
+            sys.exit()
+
+        # call my new cool function :) naskle
+        max_err = pruning_v2(aut, ratio, freq)
+
+    else:
+        # old pruning algorithm
+        pruning(aut, ratio, freq=freq)
+
+    return aut, m, max_err
 
 def armc(aut, pcap, ratio=.25, th=.75, merge_empty=True):
     '''
@@ -82,7 +99,7 @@ def armc(aut, pcap, ratio=.25, th=.75, merge_empty=True):
         the number of merged states
     '''
     empty, eq = aut.get_armc_groups(pcap, th)
-    
+
     mapping = {}
     # merge similar
     g = networkx.Graph(eq)
@@ -142,7 +159,12 @@ def reduce_eval(fa_name, *, test, train=None, ratios, merge=False, ths=[.995],
     if not merge:
         ths, mfs = [None], [None]
 
+    import pdb
+    pdb.set_trace()
+
     test_data = ' '.join(set([item for sub in test for item in glob(sub)]))
+
+    print('test_data =', test_data)
 
     assert len(test_data) >= 1
     assert 1 <= nw <= multiprocessing.cpu_count()
@@ -152,11 +174,11 @@ def reduce_eval(fa_name, *, test, train=None, ratios, merge=False, ths=[.995],
     for i in ratios: assert 0.0001 < i < 0.99
 
     aut = Nfa.parse(fa_name)
-    
+
     cname = os.path.basename(fa_name).replace('.fa','')
     orig_name = os.path.join(RED_DIR, cname + '.msfm')
     with open(orig_name,'w') as f: aut.print(f,how='msfm')
-    
+
     freq = aut.get_freq(train)
     reduction_csv = []
     eval_csv = []

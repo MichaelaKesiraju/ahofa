@@ -41,8 +41,13 @@ def prune_cross_val():
     pass
 
 def reduce_many():
+    '''
+    15.8. zkosim vlozit darpa test file
     test = ['aconet-sampled-div[1-9]']
     train = 'aconet-sampled-div'
+    '''
+    test = ['darpa-1998-training-week1-friday.pcap']
+    train = ['darpa-1998-training-week1-friday.pcap']
     nw = 2 #number of cores, maximum on pclengal: 8
 
     '''

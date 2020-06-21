@@ -40,6 +40,7 @@ def main():
     parser.add_argument(
         '-d', '--depth', type=int, help='maximal depth of a state to display')
 
+    parser.add_argument("--dpi", type=int, default=3000, help="output image dpi")
     args = parser.parse_args()
 
     aut = Nfa.parse(args.input)
@@ -62,8 +63,8 @@ def main():
         freq_scale=lambda x: math.log(x + 2), show_diff=0)
 
     write_output(args.output, out)
-    image = args.output.split('.dot')[0] + '.jpg'
-    prog = 'dot -Tjpg ' + args.output + ' -o ' + image
+    image = args.output.split('.dot')[0] + '.png'
+    prog = 'dot -Tpng ' + args.output + ' -Gdpi=' + str(args.dpi) + ' -o ' + image
     subprocess.call(prog.split())
     prog = 'xdg-open ' + image
     subprocess.call(prog.split())
